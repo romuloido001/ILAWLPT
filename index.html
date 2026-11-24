@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ILAW Lesson Plan Generator</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#1f2430;--mute:#5d6577;--line:#e4ded3;--accent:#b45309;--accent-ink:#fff;--i:#2563eb;--l:#059669;--a:#b45309;--w:#7c3aed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16181d;--card:#1f2229;--ink:#eceae4;--mute:#a1a7b5;--line:#33373f;--accent:#f59e0b;--accent-ink:#1a1305;--i:#60a5fa;--l:#34d399;--a:#fbbf24;--w:#a78bfa;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#16181d;--card:#1f2229;--ink:#eceae4;--mute:#a1a7b5;--line:#33373f;--accent:#f59e0b;--accent-ink:#1a1305;--i:#60a5fa;--l:#34d399;--a:#fbbf24;--w:#a78bfa;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 56px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(26px,5vw,36px);margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (max-width:600px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;font-weight:600;color:var(--mute);margin-bottom:4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+textarea{min-height:70px;resize:vertical}
+.full{grid-column:1/-1}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.6;cursor:wait}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#status{margin:14px 0;color:var(--mute)}
+#status.err{color:#dc2626}
+#plan{margin-top:18px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.meta div{font-size:14px}.meta b{display:block;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.sec{border-left:6px solid var(--c);margin-top:14px;padding:14px 16px}
+.sec h2{margin:0 0 8px;font-size:18px;display:flex;align-items:center;gap:10px}
+.sec h2 span{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--c);color:var(--bg);font-family:Georgia,serif}
+.sec h3{font-size:14px;margin:12px 0 4px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.sec ul,.sec ol{margin:4px 0;padding-left:22px}
+.act{margin:8px 0;padding:10px 12px;background:var(--bg);border-radius:8px}
+.act b{display:block}
+.note{font-size:13px;color:var(--mute);margin-top:14px}
+[contenteditable]:focus{outline:2px dashed var(--accent);outline-offset:3px}
+@media print{body{background:#fff;color:#000}.noprint{display:none}.card{border:0}main{padding:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>ILAW Lesson Plan Generator</h1>
+<p class="sub noprint">Draft a plan using DepEd’s four-part ILAW framework: <b>I</b>ntentions, <b>L</b>earning Experience, <b>A</b>ssessing Learning, <b>W</b>ays Forward.</p>
+
+<section class="card noprint">
+<div class="grid">
+<div><label for="subject">Subject</label><input id="subject" placeholder="e.g., Science"></div>
+<div><label for="grade">Grade level</label><select id="grade"></select></div>
+<div class="full"><label for="topic">Topic or competency</label><input id="topic" placeholder="e.g., Describe the motions of the Earth (paste the exact competency from your curriculum guide if you have it)"></div>
+<div><label for="mins">Session length (minutes)</label><input id="mins" type="number" min="10" max="240" value="50"></div>
+<div><label for="lang">Language</label><select id="lang"><option>English</option><option>Filipino</option><option>English with Filipino terms</option></select></div>
+<div class="full"><label for="ctx">Learner and class notes (optional)</label><textarea id="ctx" placeholder="Mixed learning levels, available materials, no projector, class size, local context…"></textarea></div>
+</div>
+<div class="bar"><button id="go">Generate ILAW plan</button><button class="alt" id="clear">Clear</button></div>
+</section>
+
+<div id="status" role="status" class="noprint"></div>
+<div id="plan"></div>
+<div id="tools" class="bar noprint" hidden>
+<button id="copy">Copy as text</button><button class="alt" id="print">Print / save as PDF</button>
+</div>
+<p class="note noprint" id="note" hidden>AI-drafted. Review and edit before use: click any text in the plan to edit it, and check the competency wording against the official DepEd curriculum guide.</p>
+</main>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var g=$("grade");
+["Kindergarten","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12"].forEach(function(x,i){var o=document.createElement("option");o.textContent=x;if(i===7)o.selected=true;g.appendChild(o)});
+
+function arr(v){return Array.isArray(v)?v:(v?[v]:[])}
+function el(tag,txt,cls){var e=document.createElement(tag);if(txt!=null)e.textContent=String(txt);if(cls)e.className=cls;return e}
+function list(items,ord){var l=el(ord?"ol":"ul");arr(items).forEach(function(t){l.appendChild(el("li",t))});return l}
+function sec(letter,name,color){var s=el("section",null,"card sec");s.style.setProperty("--c",color);var h=el("h2");h.appendChild(el("span",letter));h.appendChild(document.createTextNode(name));s.appendChild(h);return s}
+function sub(s,title,node){s.appendChild(el("h3",title));s.appendChild(node)}
+
+function render(p,f){
+var root=$("plan");root.textContent="";
+var wrap=el("div",null,"card");wrap.contentEditable="true";
+wrap.appendChild(el("h2",p.title||f.topic));
+var m=el("div",null,"meta");
+[["Subject",f.subject],["Grade",f.grade],["Topic",f.topic],["Duration",f.mins+" minutes"]].forEach(function(x){var d=el("div");d.appendChild(el("b",x[0]));d.appendChild(document.createTextNode(x[1]));m.appendChild(d)});
+wrap.appendChild(m);
+if(p.competency){var c=el("div");c.appendChild(el("b","Competency"));c.appendChild(document.createTextNode(p.competency));c.style.fontSize="14px";wrap.appendChild(c)}
+
+var I=sec("I","Intentions","var(--i)");
+sub(I,"Learning objectives",list(p.intentions&&p.intentions.objectives,true));
+sub(I,"Success criteria",list(p.intentions&&p.intentions.successCriteria));
+wrap.appendChild(I);
+
+var L=sec("L","Learning Experience","var(--l)");
+var le=p.learningExperience||{};
+var acts=el("div");
+arr(le.activities).forEach(function(a){var d=el("div",null,"act");d.appendChild(el("b",(a.phase?a.phase+": ":"")+(a.title||"")+(a.minutes?" ("+a.minutes+" min)":"")));d.appendChild(document.createTextNode(a.description||""));if(a.differentiation){var x=el("div","Support and stretch: "+a.differentiation);x.style.cssText="font-size:14px;color:var(--mute);margin-top:4px";d.appendChild(x)}acts.appendChild(d)});
+sub(L,"Activities",acts);
+sub(L,"Materials",list(le.materials));
+wrap.appendChild(L);
+
+var A=sec("A","Assessing Learning","var(--a)");
+var as=p.assessingLearning||{};
+sub(A,"Quick check for understanding",list(as.quickCheck,true));
+if(as.endOfLesson)sub(A,"End-of-lesson task",el("p",as.endOfLesson));
+if(as.rubric)sub(A,"Scoring guide",list(as.rubric));
+wrap.appendChild(A);
+
+var W=sec("W","Ways Forward","var(--w)");
+var w=p.waysForward||{};
+if(w.reinforcement)sub(W,"Reinforcement",list(w.reinforcement));
+if(w.remediation)sub(W,"For learners who need more support",list(w.remediation));
+if(w.enrichment)sub(W,"Enrichment",list(w.enrichment));
+if(w.nextLesson)sub(W,"Next lesson",el("p",w.nextLesson));
+wrap.appendChild(W);
+root.appendChild(wrap);
+$("tools").hidden=false;$("note").hidden=false;
+}
+
+function setStatus(t,e){var s=$("status");s.textContent=t;s.className=e?"err":""}
+
+$("go").onclick=async function(){
+var f={subject:$("subject").value.trim(),grade:g.value,topic:$("topic").value.trim(),mins:+$("mins").value||50,lang:$("lang").value,ctx:$("ctx").value.trim()};
+if(!f.topic){setStatus("Please enter a topic or competency.",true);return}
+if(!f.subject)f.subject="General";
+var btn=$("go");btn.disabled=true;setStatus("Drafting your ILAW plan…");
+try{
+var sample=await claude.use("sample");
+if(!sample){setStatus("AI drafting is not available in this view. Open the artifact from your Claude account and try again.",true);btn.disabled=false;return}
+var prompt="You are an experienced Philippine DepEd curriculum specialist. Write a lesson plan in the DepEd ILAW framework (Intentions, Learning Experience, Assessing Learning, Ways Forward) aligned to the MATATAG curriculum where applicable.\n"+
+"Subject: "+f.subject+"\nGrade: "+f.grade+"\nTopic or competency: "+f.topic+"\nSession length: "+f.mins+" minutes\nWrite in: "+f.lang+"\nLearner and class notes: "+(f.ctx||"none")+"\n\n"+
+"Rules: use Philippine context and low-cost materials where natural; make activity minutes add up to about "+f.mins+"; include at least two distinct activities; objectives must be observable and measurable; do not add sections beyond the four ILAW parts; if the topic is not a formal competency, restate it as one in the 'competency' field.\n"+
+"Return ONLY JSON with this shape: {\"title\":string,\"competency\":string,\"intentions\":{\"objectives\":[string],\"successCriteria\":[string]},\"learningExperience\":{\"activities\":[{\"phase\":string,\"title\":string,\"minutes\":number,\"description\":string,\"differentiation\":string}],\"materials\":[string]},\"assessingLearning\":{\"quickCheck\":[string],\"endOfLesson\":string,\"rubric\":[string]},\"waysForward\":{\"reinforcement\":[string],\"remediation\":[string],\"enrichment\":[string],\"nextLesson\":string}}";
+var plan=await sample.json(prompt);
+render(plan,f);setStatus("");
+}catch(e){setStatus("Something went wrong ("+((e&&e.message)||(e&&e.code)||"unknown")+"). Please try again.",true)}
+btn.disabled=false};
+
+$("clear").onclick=function(){["subject","topic","ctx"].forEach(function(i){$(i).value=""});$("plan").textContent="";$("tools").hidden=true;$("note").hidden=true;setStatus("")};
+$("print").onclick=function(){window.print()};
+$("copy").onclick=async function(){var t=$("plan").innerText;try{await navigator.clipboard.writeText(t);setStatus("Copied. Paste it into Word or Google Docs.")}catch(e){var r=document.createRange();r.selectNodeContents($("plan"));var s=getSelection();s.removeAllRanges();s.addRange(r);setStatus("Text selected. Press Ctrl/Cmd+C to copy.")}};
+})();
+</script>
+</body>
+</html>
